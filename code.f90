@@ -10,6 +10,11 @@
   REAL :: A(N,M,NK), B(N,M,NK), C(N,M,NK), D(N,M,NK), max_a, max_b, max_c, max_d, V_r(N,M,NK), V_phi(N,M,NK), left_deriv, right_deriv
   INTEGER :: i,j,k, indeks_r, indeks_phi
   REAL :: delta_mu, f_omni, F(N,M,NK), max_f, E(N,M,NK), G(N,M,NK), max_g, time_printer, anis
+! Face/centre ratio for the focusing coefficient. G = (v/2L)(1-mu^2), so the
+! value on the face ABOVE cell k follows from the centre value by an exact
+! rescale -- no extra field and no change to any subroutine signature.
+! mu_face_ratio(NK) = 0 identically, because that face IS mu = +1.
+  REAL :: mu_face_ratio(NK)
   REAL :: time_begin, time_end 
  
    REAL :: injection_broadness = 15./180.*PI, acceleration_time = 0.1, escape_time = 1. 
@@ -57,6 +62,16 @@
     WRITE(500,"(1(ES18.8))") MU(k)
     
  END DO
+
+! Face-centred focusing. The mu grid is CELL-CENTRED (MU(1) = -1 + Delta_mu/2),
+! so the cell FACES sit exactly at mu = +-1 where G = (v/2L)(1-mu^2) vanishes.
+! The scheme needs the flux ON the faces; using the centre value there makes the
+! mu=+1 face leak, and because G(mu_top) ~ (v/2L)*Delta_mu while the draining
+! cell is also Delta_mu wide, the loss rate is INDEPENDENT of NK.
+DO k = 1, NK
+  mu_face_ratio(k) = (1. - (MU(k) + Delta_mu/2.)**2)/(1. - MU(k)*MU(k))
+END DO
+mu_face_ratio(NK) = 0.      ! the mu=+1 face carries no flux, by construction
  
  R(1) = 0.05
  
@@ -586,9 +601,11 @@ DO k = 2, NK - 1
   DO j = 1, M
     DO i = 2, N
       IF (G(i,j,k).GE.0.) THEN
-        f_new(i,j,k) = f_old(i,j,k) - Delta_t/Delta_mu*(G(i,j,k)*f_old(i,j,k) - G(i,j,k-1)*f_old(i,j,k-1))/2.
+      f_new(i,j,k) = f_old(i,j,k) - Delta_t/Delta_mu*(G(i,j,k)*mu_face_ratio(k)*f_old(i,j,k) &
+                   - G(i,j,k-1)*mu_face_ratio(k-1)*f_old(i,j,k-1))/2.
       ELSE
-        f_new(i,j,k) = f_old(i,j,k) - Delta_t/Delta_mu*(G(i,j,k+1)*f_old(i,j,k+1) - G(i,j,k)*f_old(i,j,k))/2.
+     f_new(i,j,k) = f_old(i,j,k) - Delta_t/Delta_mu*(G(i,j,k+1)*mu_face_ratio(k+1)*f_old(i,j,k+1) &
+                  - G(i,j,k)*mu_face_ratio(k)*f_old(i,j,k))/2.
       END IF
     END DO
   END DO
@@ -597,14 +614,18 @@ END DO
 DO j = 1, M
   DO i = 2, N
     IF (G(i,j,1).GE.0.) THEN
-      f_new(i,j,1) = f_old(i,j,1) - Delta_t/Delta_mu/2.*f_old(i,j,1)*G(i,j,1)
+    f_new(i,j,1) = f_old(i,j,1) - Delta_t/Delta_mu/2.*f_old(i,j,1)*G(i,j,1)*mu_face_ratio(1)
     ELSE
-      f_new(i,j,1) = f_old(i,j,1) - Delta_t/Delta_mu*(G(i,j,2)*f_old(i,j,2) - G(i,j,1)*f_old(i,j,1))/2.
+    f_new(i,j,1) = f_old(i,j,1) - Delta_t/Delta_mu*(G(i,j,2)*mu_face_ratio(2)*f_old(i,j,2) &
+                 - G(i,j,1)*mu_face_ratio(1)*f_old(i,j,1))/2.
     END IF
     IF (G(i,j,Nk).GE.0.) THEN
-      f_new(i,j,Nk) = f_old(i,j,Nk) - Delta_t/Delta_mu*(G(i,j,Nk)*f_old(i,j,Nk) - G(i,j,Nk-1)*f_old(i,j,Nk-1))/2.
+     ! G(NK)*mu_face_ratio(NK) = 0: the mu=+1 face carries no flux, so this
+     ! reduces to pure inflow from below.
+     f_new(i,j,Nk) = f_old(i,j,Nk) - Delta_t/Delta_mu*(G(i,j,Nk)*mu_face_ratio(NK)*f_old(i,j,Nk) &
+                   - G(i,j,Nk-1)*mu_face_ratio(NK-1)*f_old(i,j,Nk-1))/2.
     ELSE
-      f_new(i,j,NK) = f_old(i,j,NK) + Delta_t/Delta_mu/2.*f_old(i,j,NK)*G(i,j,NK)
+    f_new(i,j,NK) = f_old(i,j,NK) + Delta_t/Delta_mu/2.*f_old(i,j,NK)*G(i,j,NK)*mu_face_ratio(NK)
     END IF
   END DO
 END DO
@@ -613,24 +634,31 @@ DO k = 2, NK - 1
   DO j = 1, M
     DO i = 2, N
       IF (G(i,j,k).GE.0.) THEN
-        left_lim = (G(i,j,k)*f_new(i,j,k) - G(i,j,k-1)*f_new(i,j,k-1))/2.
-        right_lim = (G(i,j,k+1)*f_new(i,j,k+1) - G(i,j,k)*f_new(i,j,k))/2.
+      left_lim = (G(i,j,k)*mu_face_ratio(k)*f_new(i,j,k) &
+                - G(i,j,k-1)*mu_face_ratio(k-1)*f_new(i,j,k-1))/2.
+	  right_lim = (G(i,j,k+1)*mu_face_ratio(k+1)*f_new(i,j,k+1) &
+                 - G(i,j,k)*mu_face_ratio(k)*f_new(i,j,k))/2.
       ELSE
-        left_lim = (G(i,j,k-1)*f_new(i,j,k-1) - G(i,j,k)*f_new(i,j,k))/2.
-        right_lim = (G(i,j,k)*f_new(i,j,k) - G(i,j,k+1)*f_new(i,j,k+1))/2.
+      left_lim = (G(i,j,k-1)*mu_face_ratio(k-1)*f_new(i,j,k-1) &
+                - G(i,j,k)*mu_face_ratio(k)*f_new(i,j,k))/2.
+	  right_lim = (G(i,j,k)*mu_face_ratio(k)*f_new(i,j,k) &
+                 - G(i,j,k+1)*mu_face_ratio(k+1)*f_new(i,j,k+1))/2.
       END IF
       limiter = 2.*left_lim*right_lim/(left_lim + right_lim)
       IF (limiter.NE.limiter) limiter = 0.
       IF (left_lim*right_lim.LT.0.) limiter = 0.
-      f_holder(i,j,k) = G(i,j,k)*f_new(i,j,k) + limiter
+    f_holder(i,j,k) = G(i,j,k)*mu_face_ratio(k)*f_new(i,j,k) + limiter
     END DO
   END DO
 END DO
 !$omp parallel do collapse(2)
 DO j = 1, M
   DO i = 2, N
-    f_holder(i,j,1) = G(i,j,1)*f_new(i,j,1)
-    f_holder(i,j,NK) = G(i,j,NK)*f_new(i,j,NK)
+    f_holder(i,j,1) = G(i,j,1)*mu_face_ratio(1)*f_new(i,j,1)
+    ! = 0 identically: mu_face_ratio(NK) = 0 because this face IS mu = +1.
+    ! This single line was the particle leak; the k=NK boundary case below
+    ! now reduces to pure inflow with no special-casing.
+    f_holder(i,j,NK) = G(i,j,NK)*mu_face_ratio(NK)*f_new(i,j,NK)
   END DO
 END DO
 !$omp parallel do collapse(2) private(i)

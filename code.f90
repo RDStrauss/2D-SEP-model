@@ -553,25 +553,24 @@ END DO
 !---------------------------------------------------
 ! Mu diffusion
 
-!$omp parallel do private(j,k)
-DO i = 1, N
-
+! INTERCHANGED to k/j/i: i is the contiguous index of f(i,j,k), so the
+! original k-innermost order strode 52 kB per inner iteration. f_new is
+! write-only and f_old/E/F read-only here, so every index is independent.
+!$omp parallel do collapse(2) private(i)
+DO k = 2, NK - 1
   DO j = 1, M
-  
-    DO k = 2, NK - 1
-    
+    DO i = 1, N
       f_new(i,j,k) = f_old(i,j,k) + E(i,j,k)*Delta_t/2./Delta_mu*(f_old(i,j,k+1) - f_old(i,j,k-1)) + F(i,j,k)*Delta_t/Delta_mu/Delta_mu*(f_old(i,j,k+1)- 2.*f_old(i,j,k) + f_old(i,j,k-1))
-    
     END DO
-
-!At the boundaries
-
-  f_new(i,j,1) = f_old(i,j,1) - Delta_t/Delta_mu*(-(F(i,j,1)+F(i,j,2))/2.*(f_old(i,j,2) - f_old(i,j,1))/Delta_mu)
-  f_new(i,j,NK) = f_old(i,j,NK) + Delta_t/Delta_mu*(-(F(i,j,NK)+F(i,j,NK-1))/2.*(f_old(i,j,NK) - f_old(i,j,NK-1))/Delta_mu)
-    
-   END DO
-   
   END DO
+END DO
+!$omp parallel do collapse(2)
+DO j = 1, M
+  DO i = 1, N
+    f_new(i,j,1) = f_old(i,j,1) - Delta_t/Delta_mu*(-(F(i,j,1)+F(i,j,2))/2.*(f_old(i,j,2) - f_old(i,j,1))/Delta_mu)
+    f_new(i,j,NK) = f_old(i,j,NK) + Delta_t/Delta_mu*(-(F(i,j,NK)+F(i,j,NK-1))/2.*(f_old(i,j,NK) - f_old(i,j,NK-1))/Delta_mu)
+  END DO
+END DO
 
 !Update f_new
 DO k = 1, NK
@@ -590,115 +589,89 @@ END DO
 !---------------------------------------------------
 ! Mu convection
 
-!$omp parallel do private(j,k,left_lim,right_lim,limiter)
-DO i = 2, N
-
+! INTERCHANGED to k/j/i and FISSIONED into its three stages.
+! Stage B needs all of stage A's f_new for a given (i,j), and stage C needs all
+! of stage B's f_holder, which the original got for free by keeping k innermost.
+! With k outermost the implicit barrier between regions supplies that ordering.
+!$omp parallel do collapse(2) private(i)
+DO k = 2, NK - 1
   DO j = 1, M
-   
-    DO k = 2, NK - 1
-
+    DO i = 2, N
       IF (G(i,j,k).GE.0.) THEN
-    
-      f_new(i,j,k) = f_old(i,j,k) - Delta_t/Delta_mu*(G(i,j,k)*f_old(i,j,k) - G(i,j,k-1)*f_old(i,j,k-1))/2.
-    
-     ELSE
-     
-     f_new(i,j,k) = f_old(i,j,k) - Delta_t/Delta_mu*(G(i,j,k+1)*f_old(i,j,k+1) - G(i,j,k)*f_old(i,j,k))/2.
-     
-     END IF
-    
+        f_new(i,j,k) = f_old(i,j,k) - Delta_t/Delta_mu*(G(i,j,k)*f_old(i,j,k) - G(i,j,k-1)*f_old(i,j,k-1))/2.
+      ELSE
+        f_new(i,j,k) = f_old(i,j,k) - Delta_t/Delta_mu*(G(i,j,k+1)*f_old(i,j,k+1) - G(i,j,k)*f_old(i,j,k))/2.
+      END IF
     END DO
-    
-    
+  END DO
+END DO
+!$omp parallel do collapse(2)
+DO j = 1, M
+  DO i = 2, N
     IF (G(i,j,1).GE.0.) THEN
-    
-    f_new(i,j,1) = f_old(i,j,1) - Delta_t/Delta_mu/2.*f_old(i,j,1)*G(i,j,1)
-    
+      f_new(i,j,1) = f_old(i,j,1) - Delta_t/Delta_mu/2.*f_old(i,j,1)*G(i,j,1)
     ELSE
-    
-    f_new(i,j,1) = f_old(i,j,1) - Delta_t/Delta_mu*(G(i,j,2)*f_old(i,j,2) - G(i,j,1)*f_old(i,j,1))/2.
-    
+      f_new(i,j,1) = f_old(i,j,1) - Delta_t/Delta_mu*(G(i,j,2)*f_old(i,j,2) - G(i,j,1)*f_old(i,j,1))/2.
     END IF
-    
-    IF (G(i,j,Nk).GE.0.) THEN    
-    
-     f_new(i,j,Nk) = f_old(i,j,Nk) - Delta_t/Delta_mu*(G(i,j,Nk)*f_old(i,j,Nk) - G(i,j,Nk-1)*f_old(i,j,Nk-1))/2.   
-    
+    IF (G(i,j,Nk).GE.0.) THEN
+      f_new(i,j,Nk) = f_old(i,j,Nk) - Delta_t/Delta_mu*(G(i,j,Nk)*f_old(i,j,Nk) - G(i,j,Nk-1)*f_old(i,j,Nk-1))/2.
     ELSE
-        
-    f_new(i,j,NK) = f_old(i,j,NK) + Delta_t/Delta_mu/2.*f_old(i,j,NK)*G(i,j,NK)  
-    
+      f_new(i,j,NK) = f_old(i,j,NK) + Delta_t/Delta_mu/2.*f_old(i,j,NK)*G(i,j,NK)
     END IF
-    
-        
-    DO k = 2, NK - 1
-    
-    IF (G(i,j,k).GE.0.) THEN
-    
-      left_lim = (G(i,j,k)*f_new(i,j,k) - G(i,j,k-1)*f_new(i,j,k-1))/2.
-	  right_lim = (G(i,j,k+1)*f_new(i,j,k+1) - G(i,j,k)*f_new(i,j,k))/2.
-
-    ELSE
-    
-      left_lim = (G(i,j,k-1)*f_new(i,j,k-1) - G(i,j,k)*f_new(i,j,k))/2.
-	  right_lim = (G(i,j,k)*f_new(i,j,k) - G(i,j,k+1)*f_new(i,j,k+1))/2.
-    
-    END IF
-	  
-	  limiter = 2.*left_lim*right_lim/(left_lim + right_lim)
-	  
-	  IF (limiter.NE.limiter) limiter = 0. !sometimes the limiter becomes a NaN
-	  
-	  IF(left_lim*right_lim.LT.0.) limiter = 0. !limiter not applied near extrema where signs are different
-    
-  
-    f_holder(i,j,k) = G(i,j,k)*f_new(i,j,k) + limiter
-    
+  END DO
+END DO
+!$omp parallel do collapse(2) private(i,left_lim,right_lim,limiter)
+DO k = 2, NK - 1
+  DO j = 1, M
+    DO i = 2, N
+      IF (G(i,j,k).GE.0.) THEN
+        left_lim = (G(i,j,k)*f_new(i,j,k) - G(i,j,k-1)*f_new(i,j,k-1))/2.
+        right_lim = (G(i,j,k+1)*f_new(i,j,k+1) - G(i,j,k)*f_new(i,j,k))/2.
+      ELSE
+        left_lim = (G(i,j,k-1)*f_new(i,j,k-1) - G(i,j,k)*f_new(i,j,k))/2.
+        right_lim = (G(i,j,k)*f_new(i,j,k) - G(i,j,k+1)*f_new(i,j,k+1))/2.
+      END IF
+      limiter = 2.*left_lim*right_lim/(left_lim + right_lim)
+      IF (limiter.NE.limiter) limiter = 0.
+      IF (left_lim*right_lim.LT.0.) limiter = 0.
+      f_holder(i,j,k) = G(i,j,k)*f_new(i,j,k) + limiter
     END DO
-    
+  END DO
+END DO
+!$omp parallel do collapse(2)
+DO j = 1, M
+  DO i = 2, N
     f_holder(i,j,1) = G(i,j,1)*f_new(i,j,1)
     f_holder(i,j,NK) = G(i,j,NK)*f_new(i,j,NK)
-    
-    DO k = 2, NK - 1
-    
-        IF (G(i,j,k).GE.0.) THEN
-    
-      	f_new(i,j,k) = f_old(i,j,k) - Delta_t/Delta_mu*(f_holder(i,j,k) - f_holder(i,j,k-1))
-      	
-      	ELSE
-      	
-       	f_new(i,j,k) = f_old(i,j,k) - Delta_t/Delta_mu*(f_holder(i,j,k+1) - f_holder(i,j,k))
-       	
-      	END IF
-    
+  END DO
+END DO
+!$omp parallel do collapse(2) private(i)
+DO k = 2, NK - 1
+  DO j = 1, M
+    DO i = 2, N
+      IF (G(i,j,k).GE.0.) THEN
+        f_new(i,j,k) = f_old(i,j,k) - Delta_t/Delta_mu*(f_holder(i,j,k) - f_holder(i,j,k-1))
+      ELSE
+        f_new(i,j,k) = f_old(i,j,k) - Delta_t/Delta_mu*(f_holder(i,j,k+1) - f_holder(i,j,k))
+      END IF
     END DO
-    
-     
-    IF (G(i,j,1).GE.0.) THEN 
-    
-    f_new(i,j,1) = f_old(i,j,1) - Delta_t/Delta_mu*f_holder(i,j,1)
- 
-  ELSE
-  
-    f_new(i,j,1) = f_old(i,j,1) - Delta_t/Delta_mu*(f_holder(i,j,2) - f_holder(i,j,1))
-  
-  END IF
-
-    IF (G(i,j,Nk).GE.0.) THEN 
-    
-    f_new(i,j,Nk) = f_old(i,j,Nk) - Delta_t/Delta_mu*(f_holder(i,j,Nk) - f_holder(i,j,Nk-1))
- 
-  ELSE
-  
-    f_new(i,j,NK) = f_old(i,j,NK) + Delta_t/Delta_mu*f_holder(i,j,NK)
-  
-  END IF
- 
-  
- 
-   END DO
-   
- END DO
+  END DO
+END DO
+!$omp parallel do collapse(2)
+DO j = 1, M
+  DO i = 2, N
+    IF (G(i,j,1).GE.0.) THEN
+      f_new(i,j,1) = f_old(i,j,1) - Delta_t/Delta_mu*f_holder(i,j,1)
+    ELSE
+      f_new(i,j,1) = f_old(i,j,1) - Delta_t/Delta_mu*(f_holder(i,j,2) - f_holder(i,j,1))
+    END IF
+    IF (G(i,j,Nk).GE.0.) THEN
+      f_new(i,j,Nk) = f_old(i,j,Nk) - Delta_t/Delta_mu*(f_holder(i,j,Nk) - f_holder(i,j,Nk-1))
+    ELSE
+      f_new(i,j,NK) = f_old(i,j,NK) + Delta_t/Delta_mu*f_holder(i,j,NK)
+    END IF
+  END DO
+END DO
 
  
 !Update f_new

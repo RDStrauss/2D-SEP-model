@@ -16,7 +16,10 @@
    REAL :: maximum_intensity(M), maximum_time(M), maximum_anisotropy(M), onset_time(M), background_intensity = 0.01
    INTEGER :: onset_time_flag(M)
    
-  CALL omp_set_num_threads(6)
+! Thread count is left to the runtime, so OMP_NUM_THREADS works as users
+! expect. The hardcoded call below overrode it silently: our first scaling
+! benchmark varied OMP_NUM_THREADS and produced six identical timings.
+!  CALL omp_set_num_threads(6)
  !---------------------------------------------------
  ! Files to write to
  

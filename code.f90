@@ -287,7 +287,21 @@ DO k = 1, NK
 
   DO i = 2, N - 1
   
-  IF (V_phi(i,j,k).LT.0.) THEN
+! Upwind direction for the phi sweep. This WAS \`IF (V_phi(i,j,k).LT.0.)\`, but
+! j is in the private clause of the enclosing !$omp parallel do and is not
+! assigned until the DO j loops below -- so the branch read an UNINITIALISED
+! index, which is undefined behaviour that -O3 is entitled to exploit.
+!
+! It is currently harmless, and the reason is worth stating: with
+!     V_phi(i,j,k) = -V(k)*sinpsi(i,j)/R(i),   V(k) = speed*MU(k),   sinpsi > 0
+! the SIGN of V_phi depends only on k, so any in-range garbage j selected the
+! same branch. Testing MU(k) directly is exactly equivalent while being
+! defined, and it makes the k-only dependence explicit.
+!
+! NOTE: this is only equivalent while sinpsi > 0 everywhere. If the background
+! field ever acquires a phi-dependence that changes its sign, the test has to
+! move INSIDE the DO j loops and become per-cell.
+  IF (MU(k).GT.0.) THEN
 
     DO j = 2, M - 1
 

@@ -167,9 +167,8 @@ CALL DEFINE_COEFFCIENTS(N,M,NK,R,A,B,C,D,delta_r,V_r,V_phi,K_rphi,MU,E,F,G,delta
 !---------------------------------------------------
 ! Do the r integration - convection
 
-    !$omp parallel do private(i,j,left_lim,right_lim,limiter)
+    !$omp parallel do private(i,j,left_lim,right_lim,limiter) collapse(2)
 DO k = 1, NK
-
   DO j = 1, M
   
   !Do the convertion to conserved flux; F = r*r*f
@@ -264,20 +263,17 @@ IF(left_lim*right_lim.LT.0.) limiter = 0. !limiter not applied near extrema wher
     
 !    ENDIF
        
-  END DO ! End do for loop over j
-  
-!Update f_new and convert back to f =F/r/r
-
-  DO i = 1, N
-  
+END DO
+END DO
+!$omp parallel do collapse(2) private(i)
+DO k = 1, NK
     DO j = 1, M
+  DO i = 1, N
     
       f_old(i,j,k) = f_new(i,j,k)/R(i)/R(i)
     
-    END DO
-    
-  END DO
-  
+END DO
+END DO
 END DO
  !---------------------------------------------------
 ! Do the phi integration - convection
@@ -449,9 +445,8 @@ END DO
 !---------------------------------------------------
 ! Do the r integration - diffusion
 
-!$omp parallel do private(i,j,left_deriv,right_deriv)
+!$omp parallel do private(i,j,left_deriv,right_deriv) collapse(2)
 DO k = 1, NK
-
   DO j = 1, M
   
       DO i = 2, N - 1
@@ -486,38 +481,38 @@ DO k = 1, NK
 !      f_new(1,j) = f_old(1,j) - Delta_t/Delta_r*(-(B(1) + B(2))/2.*(f_old(2,j) - f_old(1,j))/delta_r)
 !      f_new(N,j,k) = f_old(N,j,k) + Delta_t/Delta_r*(-(B(N,k) + B(N-1,k))/2.*(f_old(N,j,k) - f_old(N-1,j,k))/delta_r) - Delta_t/Delta_r*B(N,k)*f_old(N,j,k)/delta_r 
 
-  END DO
-  
-!Update f_new
-
-  DO i = 2, N
-  
+END DO
+ END DO
+!$omp parallel do collapse(2) private(i)
+DO k = 1, NK
     DO j = 1, M
+  DO i = 2, N
     
       f_old(i,j,k) = f_new(i,j,k)
     
-    END DO
-    
-  END DO
- 
+END DO
+END DO
  END DO
 
 !---------------------------------------------------
 ! Do the phi integration - diffusion
 
-!$omp parallel do private(i,j,left_deriv,right_deriv)
+!$omp parallel do private(i,j,left_deriv,right_deriv) collapse(2)
 DO k = 1, NK
-
-  DO i = 2, N - 1
-  
       DO j = 2, M - 1
+  DO i = 2, N - 1
       	
       left_deriv = (f_old(i+1,j-1,k) - f_old(i-1,j-1,k))/2./delta_r
       right_deriv = (f_old(i+1,j+1,k) - f_old(i-1,j+1,k))/2./delta_r 
       	
 	  f_new(i,j,k) = f_old(i,j,k) + C(i,j,k)*delta_t/delta_phi/2.*(f_old(i,j + 1,k) - f_old(i,j - 1,k)) + D(i,j,k)*delta_t/delta_phi/delta_phi*(f_old(i,j + 1,k) - 2.*f_old(i,j,k) + f_old(i,j - 1,k)) + K_rphi(i,j,k)/R(i)*delta_t/2./delta_phi*(right_deriv - left_deriv)
 	      
-      END DO
+END DO
+END DO
+END DO
+!$omp parallel do private(i,j,left_deriv,right_deriv) collapse(2)
+DO k = 1, NK
+  DO i = 2, N - 1
       
 !Boundary equations
       
@@ -533,20 +528,17 @@ DO k = 1, NK
     
     f_new(i,M,k) = f_old(i,M,k) + C(i,M,k)*delta_t/delta_phi/2.*(f_old(i,1,k) - f_old(i,M-1,k)) + D(i,M,k)*delta_t/delta_phi/delta_phi*(f_old(i,1,k) - 2.*f_old(i,M,k) + f_old(i,M-1,k)) + K_rphi(i,M,k)/R(i)*delta_t/2./delta_phi*(right_deriv - left_deriv)
       
-  END DO
-  
-!Update f_new
-
-  DO i = 2, N
-  
+END DO
+END DO
+!$omp parallel do collapse(2) private(i)
+DO k = 1, NK
     DO j = 1, M
+  DO i = 2, N
     
       f_old(i,j,k) = f_new(i,j,k)
     
-    END DO
-    
-  END DO
-
+END DO
+END DO
 END DO
 !---------------------------------------------------
 ! Mu diffusion

@@ -108,7 +108,7 @@ Recorded so nobody repeats them.
   domain. (Measured on the Dröge event: moving r_max from 4.5 to 12 AU with dr
   held fixed changes the 20-hour intensity by only 9%, converged by 6 AU.)
 
-## Two configuration values worth a second look
+## One configuration value worth a second look, and one missing input
 
 Not changed here, since they are yours to set.
 
@@ -120,14 +120,24 @@ Not changed here, since they are yours to set.
   Effenberger 2020, §3.3.3). On the 2010-02-07 event, 0.5 → 0.05 improves the
   shape agreement at the best-connected spacecraft by a factor 2.3
   (log-RMSD 0.156 → 0.069).
-* **The sign in the focusing-length generator.** This code *reads* 1/L from
-  `Parker_Focus_108.dat`, and the repository ships no `.dat` files, so we
-  cannot tell which form yours used:
-  `1/L = cos(psi) * [2/r ± (Omega/V)^2 r / (1 + tan^2 psi)]`.
-  The **minus** sign is the physical one (the spiral makes B fall off more
-  slowly outward, weakening focusing; the large-r limit then gives the textbook
-  L(1 AU) ≈ 1 AU). The plus form over-focuses by **1.7×** at 1 AU (L = 0.577 vs
-  0.98 AU). Everything above uses the minus form.
+* **The `.dat` inputs are not in the repository.** This code does not compute
+  the focusing length or the spiral angle — it *reads* them from
+  `Parker_Focus_108.dat`, `Parker_CosPsi_108_Phi.dat` and
+  `Parker_SinPsi_108_Phi.dat`, and the repo ships none of them, so the code as
+  published cannot be run. `make_parker_spiral.py` is included on this branch
+  for that reason: it writes the three files for any (N, M, r_max, V_sw) in the
+  read order the code expects.
+
+  For the record, it uses
+  `1/L = cos(psi) * [2/r − (Omega/V)^2 r / (1 + tan^2 psi)]` — the minus sign,
+  i.e. the spiral makes B fall off more slowly outward and *weakens* focusing,
+  giving the textbook L(1 AU) ≈ 1 AU. (Our own generator emitted the plus form
+  until we corrected it in June 2026, which over-focuses by 1.7× at 1 AU; that
+  was a bug on our side, not a statement about your inputs, and every result
+  quoted here uses the minus form.) **This is not a reported problem with your
+  code** — since 1/L is an input, both codes share whatever the generator emits,
+  which is exactly why the focusing length was cleared as a suspect for the
+  intercode disagreement.
 
 ---
 

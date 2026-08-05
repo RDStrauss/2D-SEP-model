@@ -435,18 +435,16 @@ IF(left_lim*right_lim.LT.0.) limiter = 0. !limiter not applied near extrema wher
   
 !Update f_new
 
+! Parallelised elementwise copy (was serial; the three serial copies
+! together were 34% of the 96-thread runtime). Loop order changed to
+! keep i -- the contiguous index of f(i,j,k) -- innermost.
+!$omp parallel do collapse(2) private(i)
 DO k = 1, Nk
-
-  DO i = 2, N
-  
-    DO j = 1, M
-    
+  DO j = 1, M
+    DO i = 2, N
       f_old(i,j,k) = f_new(i,j,k)
-    
     END DO
-    
   END DO
-
 END DO
 !---------------------------------------------------
 ! Do the r integration - diffusion
@@ -573,18 +571,16 @@ DO j = 1, M
 END DO
 
 !Update f_new
+! Parallelised elementwise copy (was serial; the three serial copies
+! together were 34% of the 96-thread runtime). Loop order changed to
+! keep i -- the contiguous index of f(i,j,k) -- innermost.
+!$omp parallel do collapse(2) private(i)
 DO k = 1, NK
-
-  DO i = 2, N
-  
-    DO j = 1, M
-    
+  DO j = 1, M
+    DO i = 2, N
       f_old(i,j,k) = f_new(i,j,k)
-    
     END DO
-    
   END DO
-
 END DO
 !---------------------------------------------------
 ! Mu convection
@@ -675,18 +671,16 @@ END DO
 
  
 !Update f_new
+! Parallelised elementwise copy (was serial; the three serial copies
+! together were 34% of the 96-thread runtime). Loop order changed to
+! keep i -- the contiguous index of f(i,j,k) -- innermost.
+!$omp parallel do collapse(2) private(i)
 DO k = 1, NK
-
-  DO i = 2, N
-  
-    DO j = 1, M
-    
+  DO j = 1, M
+    DO i = 2, N
       f_old(i,j,k) = f_new(i,j,k)
-          
     END DO
-    
   END DO
-
 END DO
 
 

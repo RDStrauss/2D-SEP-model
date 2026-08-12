@@ -143,3 +143,53 @@ Not changed here, since they are yours to set.
 
 Full write-up, figures and the conservation test:
 contact Frederic Effenberger, Ruhr-Universität Bochum.
+
+---
+
+## Issues found after this branch was pushed (2026-08-12)
+
+From the 1-D MCMC work and from validating a JAX port against
+`SEP_propagator`. Listed here because they bear on `code.f90`. Full write-up
+and the measurements are in the accompanying memo, section "The rub-fixes
+branch, and issues found since".
+
+### 1. `H` differs by 10x between the 1-D and 2-D codes
+
+The mu=0 resonance-gap offset in `D_mumu ~ (1-mu^2)(|mu|^(q-1) + H)`:
+
+| where | value | shape at mu=0 |
+|---|---|---|
+| 2-D `code.f90` line 975 | `+ 0.5` | 0.50 |
+| 1-D `SEP_propagator.f90` line 629 | `+ 0.05` | 0.05 |
+| the 1-D code's own comment, line 627 | "H = 0.005" | 0.005 |
+
+Three values, each an order of magnitude apart. H controls how readily
+particles cross mu = 0, hence isotropisation and the decay rate. **A
+lambda_par fitted with the 1-D code is not comparable with one fitted with the
+2-D code while this stands** -- which matters now that both are being run on
+the same three Lang et al. events. NOT changed here: which value is intended
+is a physics decision, and guessing would be worse than asking.
+
+### 2. `code.f90` is still single precision
+
+15 `REAL ::` blocks, no double-precision declarations. That is the
+configuration behind the NaNs at (N,M) = (400,199) in `SEP_propagator` issue
+number 4, fixed on 2026-08-11 by moving the 1-D code to `REAL(KIND=8)`. The
+same change is presumably wanted here before the 2-D grid is refined.
+
+### 3. NOT a 2-D problem, but worth knowing: the 1-D injection switch
+
+`SEP_propagator.f90` ships `injection_swtich = 1`, a delta function in time,
+and its Reid profile sits inside `IF (injection_swtich .EQ. 2)`. So
+`acceleration_time` and `escape_time` are never read with the shipped
+defaults -- verified, output is bit-identical across a 100x range in one and a
+200x range in the other. `code.f90`'s Reid injection at line 156 is
+unconditional, so the 2-D code is unaffected. Flagged because a 1-D MCMC that
+fits those two timescales will silently fit nothing.
+
+### 4. Our theta-scheme for the 1-D code has a lambda floor
+
+An implicit mu-diffusion patch we wrote is 1.3-5.2x faster for
+lambda_par >~ 0.07 AU and goes NaN below ~0.06 (1045 of 1061 output rows at
+0.05). Double precision does not rescue it, so it is the operator splitting
+rather than round-off. Do not adopt it without that floor guarded.

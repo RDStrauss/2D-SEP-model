@@ -5,7 +5,15 @@ This is the code for the spatially 2D solar energetic particle (SEP) transport m
 ## Using SEP_propagator
 
 There are a few parameters in the Fortran90 code which can be changed:
-- `lambda`: The radial mean free path in AU.
+- `lambda`: The parallel radial mean free path; taken to be independent of radial distance.
+- `lambda_perp`: The perpendicular mean free path; usually a constant factor of parallel
+- `energy`: The particle's kinetic energy in MeV.
+- `species`: 1 for electrons or 2 for protons.  
+- `totaltime`: The time the simulation must be computed for in hours.
+- `times`: An array with the times in hours when the pitch-angle distribution at the observation point should be printed out.
+- For the adopted Reid-Axford injection profile, there is also an `acceleration_time` and `escape_time` in hours to control its shape.
+- `injection_broadness`: The Gaussian width of the injected source.
+- `phi_source`: The position of the peak injection (peak of Gaussian).
 
 To compile the Fortran90 code, use either the Intel Fortran compiler with
 ```

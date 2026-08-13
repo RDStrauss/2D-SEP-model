@@ -19,7 +19,7 @@ To compile the Fortran90 code, use either the Intel Fortran compiler with
 ```
 gfortran -fopenmp -O2 Version_1.f90
 ```
-and run the executable `./a.out`. In most cases the stack size should first be increase (or risk getting a segmentation fault),
+and run the executable `./a.out`. In most cases the stack size should first be increased (or risk getting a segmentation fault),
 
 ```
 ulimit -s unlimited

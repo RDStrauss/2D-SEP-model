@@ -9,7 +9,11 @@ There are a few parameters in the Fortran90 code which can be changed:
 
 ## SDE benchmark run
 
-This folder contains the model comparison with the SDE-based results of *Droge et al. [2010]* for 4 MeV protons using a delta-like injection. Also contains results from the 1D SEP transport model.
+This folder contains the model comparison with the SDE-based results of *Droge et al. [2010]* for 4 MeV protons using a delta-like injection. Also contains results from the 1D SEP transport model. This is a special model set-up specifically to mimic a 1D model solution: (1) Perpendicular diffusion is set to zero, (2) a circumsolar injection in azimuth is hard-coded, (3) the radial dependence of the parallel mean-free-path is taken from *Droge et al. [2010]*, and (4) a delta-like injection in time is hardcoded. This is probably not the version to use when looking at any data.
+
+## Example
+
+Add example....
 
 ## Disclosure and Notice
 

@@ -30,7 +30,7 @@ This folder contains the model comparison with the SDE-based results of *Droge e
 
 ## Test 4 - Droge benchmark run
 
-Add example....
+We benchmark directly with the 3D SDE results of *Droge et al. [2014]* for a specific event using the same input parameters. This comparison is also summarised in *Steyn et al. [2020]*.
 
 ## Quick convergence study
 
@@ -48,3 +48,6 @@ The  code  is published under the Creative Commons license, but is not intended 
 
 van den Berg, J.P., Strauss, R.D., and Effenberger, F. 2020. A primer on focused solar energetic particle transport. *Space Science Reviews*, https://link.springer.com/article/10.1007/s11214-020-00771-x
 
+[W. Dröge, Y. Y. Kartavykh, N. Dresing, B. Heber, A. Klassen. 2014. Wide longitudinal distribution of interplanetary electrons following the 7 February 2010 solar event: Observations and transport modeling. *J. Geophys. Res.*, 119, 6074–6094](https://agupubs.onlinelibrary.wiley.com/doi/10.1002/2014JA019933)
+
+[Ruhann Steyn, Du Toit Strauss, Frederic Effenberger and Daniel Pacheco4. 2020. The soft X-ray Neupert effect as a proxy for solar energetic particle injection: A proof-of-concept physics-based forecasting model. *JSWSC*, 10, 64]([https://agupubs.onlinelibrary.wiley.com/doi/10.1002/2014JA019933](https://www.swsc-journal.org/articles/swsc/full_html/2020/01/swsc200079/swsc200079.html))

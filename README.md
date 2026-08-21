@@ -13,7 +13,8 @@ There are a few parameters in the Fortran90 code which can be changed:
 - For the adopted Reid-Axford injection profile, there is also an `acceleration_time` and `escape_time` in hours to control its shape.
 - `injection_broadness`: The Gaussian width of the injected source.
 - `phi_source`: The position of the peak injection (peak of Gaussian).
-- By default we've added placeholders for different spacecraft positions with a comments on the coordinate system used. 
+- By default we've added placeholders for different spacecraft positions with a comments on the coordinate system used.
+- The number of compute cores is hardcoded by `omp_set_num_threads(4)`.
 
 To compile the Fortran90 code, use either the Intel Fortran compiler with
 ```

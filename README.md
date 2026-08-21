@@ -34,7 +34,7 @@ We benchmark directly with the 3D SDE results of *Droge et al. [2014]* for a spe
 
 ## 14_aug_2010_benchmark
 
-We benchmark directly with the 3D SDE results of *Droge et al. [2016]* for a specific event (14 Aug 2010 event) using the same input parameters. This comparison is also summarised in *Steyn et al. [2020]*. Two scenarios are shown: One with the spacecraft positions set to their actual position for the event, and a second where the magnetic field footpoint locations of each spacecraft is used. We suspect Droge et al. used the footpoint locations in their simulations to account for different solar wind speeds, and hence, different magnetic connectivity between the spacecraft and source when a longitudinally average solar wind speed is used. 
+We benchmark directly with the 3D SDE results of *Droge et al. [2016]* for a specific event (14 Aug 2010 event) using the same input parameters. Two scenarios are shown: One with the spacecraft positions set to their actual position for the event, and a second where the magnetic field footpoint locations of each spacecraft is used. We suspect Droge et al. used the footpoint locations in their simulations to account for different solar wind speeds, and hence, different magnetic connectivity between the spacecraft and source when a longitudinally average solar wind speed is used. 
 
 ## Quick convergence study
 
@@ -55,7 +55,6 @@ van den Berg, J.P., Strauss, R.D., and Effenberger, F. 2020. A primer on focused
 [W. Dröge, Y. Y. Kartavykh, N. Dresing, B. Heber, A. Klassen. 2014. Wide longitudinal distribution of interplanetary electrons following the 7 February 2010 solar event: Observations and transport modeling. *J. Geophys. Res.*, 119, 6074–6094](https://agupubs.onlinelibrary.wiley.com/doi/10.1002/2014JA019933)
 
 [W. Dröge, Y. Y. Kartavykh, N. Dresing, A. Klassen. 2016. MULTI-SPACECRAFT OBSERVATIONS AND TRANSPORT MODELING OF ENERGETIC ELECTRONS FOR A
-SERIES OF SOLAR PARTICLE EVENTS IN AUGUST 2010. *ApJ*, 826, 134]
-
+SERIES OF SOLAR PARTICLE EVENTS IN AUGUST 2010. *ApJ*, 826, 134](https://iopscience.iop.org/article/10.3847/0004-637X/826/2/134)
 
 [Ruhann Steyn, Du Toit Strauss, Frederic Effenberger and Daniel Pacheco4. 2020. The soft X-ray Neupert effect as a proxy for solar energetic particle injection: A proof-of-concept physics-based forecasting model. *JSWSC*, 10, 64](https://agupubs.onlinelibrary.wiley.com/doi/10.1002/2014JA019933](https://www.swsc-journal.org/articles/swsc/full_html/2020/01/swsc200079/swsc200079.html)

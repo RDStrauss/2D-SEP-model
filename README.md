@@ -36,9 +36,13 @@ We benchmark directly with the 3D SDE results of *Droge et al. [2014]* for a spe
 
 We benchmark directly with the 3D SDE results of *Droge et al. [2016]* for a specific event (14 Aug 2010 event) using the same input parameters. Two scenarios are shown: One with the spacecraft positions set to their actual position for the event, and a second where the magnetic field footpoint locations of each spacecraft is used. We suspect Droge et al. used the footpoint locations in their simulations to account for different solar wind speeds, and hence, different magnetic connectivity between the spacecraft and source when a longitudinally average solar wind speed is used. 
 
+## Example
+
+The folder contains a quick multi-spacecraft example, including plotting routines for time profiles and contour plots.
+
 ## Quick convergence study
 
-Add example....
+Still on the ToDO list, sadly....
 
 ## Disclosure and Notice
 
